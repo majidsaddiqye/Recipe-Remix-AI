@@ -1,9 +1,14 @@
 const { Server } = require("socket.io");
 const chatModel = require("../models/chat.model");
+const userModel = require("../models/user.model");
 const { getAIChatResponse } = require("../services/ai.service");
 
 module.exports = (server) => {
-    const io = new Server(server, { cors: { origin: "*" } });
+    const io = new Server(server, { cors: {
+        origin: "http://localhost:5173", // Wildcard '*' nahi chalega
+        methods: ["GET", "POST"],
+        credentials: true
+      } });
 
     io.on("connection", (socket) => {
         // Load old chat on demand
@@ -22,27 +27,31 @@ module.exports = (server) => {
         });
 
         socket.on("send_msg", async ({ userId, text }) => {
-            // 1. Get history for context
+            // 1. Get user's dietary preferences
+            const user = await userModel.findById(userId);
+            const dietaryPreferences = user?.dietaryPreferences || [];
+
+            // 2. Get history for context
             let chat = await chatModel.findOne({ userId });
             const history = chat ? chat.messages : [];
 
-            // 2. Save User Message
+            // 3. Save User Message
             chat = await chatModel.findOneAndUpdate(
                 { userId },
                 { $push: { messages: { role: 'user', content: text } } },
                 { upsert: true, new: true }
             );
 
-            // 3. Get AI Response
-            const aiText = await getAIChatResponse(text, history);
+            // 4. Get AI Response with dietary preferences
+            const aiText = await getAIChatResponse(text, history, dietaryPreferences);
 
-            // 4. Save AI Response
+            // 5. Save AI Response
             await chatModel.findOneAndUpdate(
                 { userId },
                 { $push: { messages: { role: 'assistant', content: aiText } } }
             );
 
-            // 5. Send back to client
+            // 6. Send back to client
             socket.emit("receive_msg", { role: 'assistant', content: aiText });
         });
     });

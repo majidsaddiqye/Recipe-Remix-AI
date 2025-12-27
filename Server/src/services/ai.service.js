@@ -23,7 +23,7 @@ const generateRecipeFromOpenAI = async (ingredients, cuisine, dietaryRestriction
 };
 
 // 2. Real-time Chat (Conversational Mode)
-const getAIChatResponse = async (userMessage, history = []) => {
+const getAIChatResponse = async (userMessage, history = [], dietaryPreferences = []) => {
   try {
     // History optimization: Last 10 messages for context
     const context = history.slice(-10).map(msg => ({
@@ -31,10 +31,16 @@ const getAIChatResponse = async (userMessage, history = []) => {
       content: msg.content
     }));
 
+    // Build system message with dietary preferences
+    let systemMessage = "You are a helpful culinary assistant. Keep responses concise and friendly.";
+    if (dietaryPreferences && dietaryPreferences.length > 0) {
+      systemMessage += ` The user has the following dietary preferences: ${dietaryPreferences.join(", ")}. Always consider these preferences when suggesting recipes or ingredients.`;
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a helpful culinary assistant. Keep responses concise and friendly." },
+        { role: "system", content: systemMessage },
         ...context,
         { role: "user", content: userMessage }
       ],

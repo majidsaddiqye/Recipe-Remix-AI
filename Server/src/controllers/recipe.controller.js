@@ -41,14 +41,35 @@ exports.getRecipe = async (req, res) => {
 
 exports.saveRecipe = async (req, res) => {
     try {
-      const { recipeId } = req.body;
+      const { recipeId, recipeData } = req.body;
+      
+      let recipeIdToSave = recipeId;
+      
+      // If recipeData is provided (from chat), create a new recipe first
+      if (recipeData && !recipeId) {
+        const newRecipe = await Recipe.create({
+          title: recipeData.title || "Saved Recipe",
+          ingredientsHash: recipeData.ingredientsHash || `chat-${Date.now()}-${req.user._id}`,
+          ingredients: recipeData.ingredients || [],
+          instructions: recipeData.instructions || [],
+          nutrition: recipeData.nutrition || {},
+          cuisine: recipeData.cuisine || "",
+          createdBy: req.user._id,
+          recipeContent: recipeData.recipeContent || recipeData.content || "", // Store markdown content
+        });
+        recipeIdToSave = newRecipe._id;
+      }
+      
+      if (!recipeIdToSave) {
+        return res.status(400).json({ message: "Recipe ID or Recipe Data is required" });
+      }
       
       // User ki savedRecipes array mein ID push (if not already there)
       await userModel.findByIdAndUpdate(req.user._id, {
-        $addToSet: { savedRecipes: recipeId }
+        $addToSet: { savedRecipes: recipeIdToSave }
       });
   
-      res.status(200).json({ message: "Recipe saved successfully" });
+      res.status(200).json({ message: "Recipe saved successfully", recipeId: recipeIdToSave });
     } catch (error) {
         console.log("Failed to Saved Receipe :", error)
       res.status(500).json({ message: error.message });
@@ -61,6 +82,22 @@ exports.saveRecipe = async (req, res) => {
       res.status(200).json({ data: user.savedRecipes });
     } catch (error) {
         console.log("get SavedReceipe error :",error)
+      res.status(500).json({ message: error.message });
+    }
+  };
+
+  exports.removeSavedRecipe = async (req, res) => {
+    try {
+      const { recipeId } = req.params;
+      
+      // Remove recipeId from user's savedRecipes array
+      await userModel.findByIdAndUpdate(req.user._id, {
+        $pull: { savedRecipes: recipeId }
+      });
+  
+      res.status(200).json({ message: "Recipe removed successfully" });
+    } catch (error) {
+      console.log("Failed to remove recipe:", error);
       res.status(500).json({ message: error.message });
     }
   };

@@ -14,6 +14,7 @@ const recipeSchema = new mongoose.Schema(
     },
     cuisine: String,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    recipeContent: { type: String }, // Store markdown content from chat
   },
   { timestamps: true }
 );

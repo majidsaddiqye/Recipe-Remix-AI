@@ -43,7 +43,7 @@ async function registerUser(req, res) {
     });
   } catch (error) {
     console.log("Register User Error :", error);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -120,4 +120,29 @@ async function logoutUser(req,res){
     }
 }
 
-module.exports = { registerUser, loginUser,logoutUser };
+// Update Dietary Preferences
+async function updateDietaryPreferences(req, res) {
+  try {
+    const { dietaryPreferences } = req.body;
+    
+    if (!Array.isArray(dietaryPreferences)) {
+      return res.status(400).json({ message: "Dietary preferences must be an array" });
+    }
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { dietaryPreferences },
+      { new: true, select: "-password" }
+    );
+
+    res.status(200).json({
+      message: "Dietary preferences updated successfully",
+      data: { user: updatedUser },
+    });
+  } catch (error) {
+    console.log("Update Dietary Preferences Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
+module.exports = { registerUser, loginUser, logoutUser, updateDietaryPreferences };
