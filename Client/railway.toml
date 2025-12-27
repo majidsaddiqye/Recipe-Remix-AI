@@ -1,1 +1,5 @@
-# Frontend service config
+[build]
+# empty, Nixpacks will auto-detect Node.js app
+
+[deploy]
+# optional, leave empty
