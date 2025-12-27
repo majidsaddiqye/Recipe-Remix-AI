@@ -10,6 +10,8 @@ socketInit(server);
 
 connectDB()
 
-server.listen(3000,()=>{
+const PORT = process.env.PORT;
+
+server.listen(PORT,()=>{
     console.log("Server is Running on Port 3000")
 })
