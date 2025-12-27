@@ -1,0 +1,11 @@
+{
+    "name": "recipe-remix-ai-root",
+    "private": true,
+    "scripts": {
+      "build": "cd Client && npm install && npm run build",
+      "start": "cd Client && npx serve -s dist"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    }
+  }
