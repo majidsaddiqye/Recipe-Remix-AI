@@ -63,31 +63,31 @@ async function loginUser(req, res) {
     const user = await userModel.findOne({ email }).select("+password");
 
     if (!user) {
-        return res.status(401).send({ message: "Invalid email or password" });
-      }
+      return res.status(401).send({ message: "Invalid email or password" });
+    }
 
-       // Check password into DB
+    // Check password into DB
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).send({ message: "Invalid password" });
     }
 
-     //Create jwt Token
-     const token = jwt.sign(
-        {
-          id: user._id,
-          username: user.username,
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "7d",
-        }
-      );
-  
-      res.cookie("token", token, {
-        httpOnly: true,
-      });
+    //Create jwt Token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+    });
 
     res.status(200).json({
       message: "User Login Successfully",
@@ -101,32 +101,38 @@ async function loginUser(req, res) {
 }
 
 //logoutUser Controller
-async function logoutUser(req,res){
-    try{
-        const { token } = req.cookies;
-        if (!token) {
-            res.status(400).json({ status: 'Failed', message: 'Logged IN First' });
-          }
-
-          res.clearCookie("token", {
-            httpOnly: true,
-            secure: true,
-          });
-          
-          res.status(200).json({ status: 'success', message: 'Logged out successfully' });
-    }catch(err){
-        console.log("Logout User Error :",err)
-        res.status(401).json({ status: 'Failed', message: 'Logged out Failed' });
+async function logoutUser(req, res) {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      res.status(400).json({ status: "Failed", message: "Logged IN First" });
     }
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+    });
+
+    res
+      .status(200)
+      .json({ status: "success", message: "Logged out successfully" });
+  } catch (err) {
+    console.log("Logout User Error :", err);
+    res.status(401).json({ status: "Failed", message: "Logged out Failed" });
+  }
 }
 
 // Update Dietary Preferences
 async function updateDietaryPreferences(req, res) {
   try {
     const { dietaryPreferences } = req.body;
-    
+
+    // console.log("Updating Dietary Preferences for User:", req.user._id, dietaryPreferences); // excessive log
+
     if (!Array.isArray(dietaryPreferences)) {
-      return res.status(400).json({ message: "Dietary preferences must be an array" });
+      return res
+        .status(400)
+        .json({ message: "Dietary preferences must be an array" });
     }
 
     const updatedUser = await userModel.findByIdAndUpdate(
@@ -134,6 +140,10 @@ async function updateDietaryPreferences(req, res) {
       { dietaryPreferences },
       { new: true, select: "-password" }
     );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.status(200).json({
       message: "Dietary preferences updated successfully",
@@ -145,4 +155,9 @@ async function updateDietaryPreferences(req, res) {
   }
 }
 
-module.exports = { registerUser, loginUser, logoutUser, updateDietaryPreferences };
+module.exports = {
+  registerUser,
+  loginUser,
+  logoutUser,
+  updateDietaryPreferences,
+};
