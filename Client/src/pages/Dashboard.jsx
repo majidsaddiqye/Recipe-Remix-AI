@@ -2,7 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { socket } from "@/lib/socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Utensils, LogOut, Bookmark, User, Settings } from "lucide-react";
+import {
+  Send,
+  Utensils,
+  LogOut,
+  Bookmark,
+  User,
+  Settings,
+  Menu,
+  X,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -28,6 +37,7 @@ export default function Dashboard() {
   const [dietaryPreferences, setDietaryPreferences] = useState([]);
   const [showDietarySettings, setShowDietarySettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
@@ -39,18 +49,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user?._id) return;
-    
+
     // Load user's dietary preferences
     if (user?.dietaryPreferences) {
       setDietaryPreferences(user.dietaryPreferences);
     }
-    
+
     const loadChatHistory = () => {
       socket.emit("load_history", { userId: user._id });
     };
 
     socket.connect();
-    
+
     // If already connected, load history immediately
     if (socket.connected) {
       loadChatHistory();
@@ -64,7 +74,7 @@ export default function Dashboard() {
         setMessages(history);
       }
     });
-    
+
     socket.on("receive_msg", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -90,15 +100,16 @@ export default function Dashboard() {
   const saveRecipe = async (content) => {
     try {
       // Extract title from markdown content (first heading or first line)
-      const titleMatch = content.match(/^#\s+(.+)$/m) || content.match(/^(.+)$/m);
+      const titleMatch =
+        content.match(/^#\s+(.+)$/m) || content.match(/^(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : "Saved Recipe";
-      
+
       // Create a recipe from the chat content
       const recipeData = {
         title: title.substring(0, 100), // Limit title length
         ingredientsHash: `chat-${Date.now()}-${user._id}`, // Unique hash for chat recipes
         ingredients: [],
-        instructions: content.split('\n').filter(line => line.trim()),
+        instructions: content.split("\n").filter((line) => line.trim()),
         nutrition: {},
         cuisine: "",
         recipeContent: content, // Store full markdown content
@@ -126,11 +137,14 @@ export default function Dashboard() {
       const response = await api.put("/auth/dietary-preferences", {
         dietaryPreferences,
       });
-      
+
       // Update local storage with new user data
-      const updatedUser = { ...user, dietaryPreferences: response.data.data.user.dietaryPreferences };
+      const updatedUser = {
+        ...user,
+        dietaryPreferences: response.data.data.user.dietaryPreferences,
+      };
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      
+
       toast.success("Dietary preferences saved!");
       setShowDietarySettings(false);
     } catch (err) {
@@ -144,10 +158,33 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Fixed Sidebar */}
-      <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 shadow-2xl fixed left-0 top-0 h-full z-20">
-        <div className="flex items-center gap-3 font-bold text-2xl mb-10 text-orange-400">
-          <Utensils className="h-8 w-8" />
-          <span className="tracking-tight">RecipeRemix</span>
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col p-6 shadow-2xl transition-transform duration-300 lg:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3 font-bold text-2xl text-orange-400">
+            <Utensils className="h-8 w-8" />
+            <span className="tracking-tight">RecipeRemix</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-slate-400 hover:text-white"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X className="h-6 w-6" />
+          </Button>
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto">
@@ -164,7 +201,7 @@ export default function Dashboard() {
           >
             <Bookmark className="h-4 w-4" /> Saved Recipes
           </Button>
-          
+
           {/* Dietary Preferences Section */}
           <div className="mt-4 pt-4 border-t border-slate-800">
             <Button
@@ -174,7 +211,7 @@ export default function Dashboard() {
             >
               <Settings className="h-4 w-4" /> Dietary Preferences
             </Button>
-            
+
             {showDietarySettings && (
               <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
                 {DIETARY_OPTIONS.map((option) => (
@@ -201,7 +238,7 @@ export default function Dashboard() {
                 </Button>
               </div>
             )}
-            
+
             {/* Show active preferences when collapsed */}
             {!showDietarySettings && dietaryPreferences.length > 0 && (
               <div className="mt-2 px-2">
@@ -254,8 +291,16 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col relative bg-white ml-72 overflow-hidden">
-        <header className="h-16 border-b flex items-center px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+      <main className="flex-1 flex flex-col relative bg-white lg:ml-72 ml-0 transition-[margin] duration-300 overflow-hidden">
+        <header className="h-16 border-b flex items-center px-4 md:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden mr-2 -ml-2"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
           <h2 className="font-semibold text-slate-800 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             AI Chef Online
