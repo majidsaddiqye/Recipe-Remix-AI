@@ -31,10 +31,15 @@ async function registerUser(req, res) {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    // Send Cookie
-    res.cookie("token", token, {
+    // Cookie Options
+    const cookieOptions = {
       httpOnly: true,
-    });
+      secure: process.env.NODE_ENV === "production", // Secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // None for cross-site
+    };
+
+    // Send Cookie
+    res.cookie("token", token, cookieOptions);
 
     res.status(201).json({
       message: "User Registered Successfully",
@@ -85,9 +90,14 @@ async function loginUser(req, res) {
       }
     );
 
-    res.cookie("token", token, {
+    // Cookie Options
+    const cookieOptions = {
       httpOnly: true,
-    });
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: "User Login Successfully",
@@ -110,7 +120,8 @@ async function logoutUser(req, res) {
 
     res.clearCookie("token", {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     res
