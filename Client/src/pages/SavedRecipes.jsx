@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Utensils, LogOut, Bookmark, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  Utensils,
+  LogOut,
+  Bookmark,
+  ArrowLeft,
+  Trash2,
+  Menu,
+  X,
+} from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +18,7 @@ import remarkGfm from "remark-gfm";
 export default function SavedRecipes() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
 
@@ -48,11 +57,33 @@ export default function SavedRecipes() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Fixed Sidebar */}
-      <aside className="w-72 bg-slate-900 text-white flex flex-col p-6 shadow-2xl fixed left-0 top-0 h-full z-20">
-        <div className="flex items-center gap-3 font-bold text-2xl mb-10 text-orange-400">
-          <Utensils className="h-8 w-8" />
-          <span className="tracking-tight">RecipeRemix</span>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col p-6 shadow-2xl transition-transform duration-300 lg:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3 font-bold text-2xl text-orange-400">
+            <Utensils className="h-8 w-8" />
+            <span className="tracking-tight">RecipeRemix</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-slate-400 hover:text-white"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X className="h-6 w-6" />
+          </Button>
         </div>
 
         <nav className="flex-1 space-y-2">
@@ -99,18 +130,36 @@ export default function SavedRecipes() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative bg-white ml-72 overflow-hidden">
-        <header className="h-16 border-b flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
-          <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-            <Bookmark className="h-5 w-5 text-orange-500" />
-            My Saved Recipes
-          </h2>
+      <main className="flex-1 flex flex-col relative bg-white lg:ml-72 ml-0 transition-[margin] duration-300 overflow-hidden">
+        <header className="h-16 border-b flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden -ml-2"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+              <Bookmark className="h-5 w-5 text-orange-500" />
+              My Saved Recipes
+            </h2>
+          </div>
           <Button
             variant="outline"
             onClick={() => navigate("/dashboard")}
-            className="gap-2"
+            className="gap-2 hidden md:flex"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Chat
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard")}
+            className="md:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
           </Button>
         </header>
 
@@ -129,7 +178,10 @@ export default function SavedRecipes() {
                 <p className="text-slate-500 mb-6">
                   Start chatting with AI Chef to save your favorite recipes!
                 </p>
-                <Button onClick={() => navigate("/dashboard")} className="gap-2">
+                <Button
+                  onClick={() => navigate("/dashboard")}
+                  className="gap-2"
+                >
                   <ArrowLeft className="h-4 w-4" /> Go to AI Assistant
                 </Button>
               </div>
@@ -162,31 +214,33 @@ export default function SavedRecipes() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {recipe.ingredients && recipe.ingredients.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">
-                              Ingredients:
-                            </h4>
-                            <ul className="list-disc list-inside text-slate-600 space-y-1">
-                              {recipe.ingredients.map((ing, idx) => (
-                                <li key={idx}>{ing}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {recipe.ingredients &&
+                          recipe.ingredients.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-slate-800 mb-2">
+                                Ingredients:
+                              </h4>
+                              <ul className="list-disc list-inside text-slate-600 space-y-1">
+                                {recipe.ingredients.map((ing, idx) => (
+                                  <li key={idx}>{ing}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
 
-                        {recipe.instructions && recipe.instructions.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">
-                              Instructions:
-                            </h4>
-                            <ol className="list-decimal list-inside text-slate-600 space-y-1">
-                              {recipe.instructions.map((inst, idx) => (
-                                <li key={idx}>{inst}</li>
-                              ))}
-                            </ol>
-                          </div>
-                        )}
+                        {recipe.instructions &&
+                          recipe.instructions.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-slate-800 mb-2">
+                                Instructions:
+                              </h4>
+                              <ol className="list-decimal list-inside text-slate-600 space-y-1">
+                                {recipe.instructions.map((inst, idx) => (
+                                  <li key={idx}>{inst}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
 
                         {recipe.nutrition && (
                           <div className="pt-4 border-t border-slate-200">
@@ -196,7 +250,9 @@ export default function SavedRecipes() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               {recipe.nutrition.calories && (
                                 <div>
-                                  <span className="text-slate-500">Calories:</span>
+                                  <span className="text-slate-500">
+                                    Calories:
+                                  </span>
                                   <span className="ml-2 font-medium text-slate-800">
                                     {recipe.nutrition.calories}
                                   </span>
@@ -204,7 +260,9 @@ export default function SavedRecipes() {
                               )}
                               {recipe.nutrition.protein && (
                                 <div>
-                                  <span className="text-slate-500">Protein:</span>
+                                  <span className="text-slate-500">
+                                    Protein:
+                                  </span>
                                   <span className="ml-2 font-medium text-slate-800">
                                     {recipe.nutrition.protein}
                                   </span>
@@ -249,4 +307,3 @@ export default function SavedRecipes() {
     </div>
   );
 }
-
